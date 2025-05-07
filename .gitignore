@@ -1,1 +1,38 @@
- 
+# System files
+.DS_Store
+.vscode/
+
+# Maven build files
+target/
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+.settings/
+.classpath
+.project
+
+# Logs
+*.log
+logs/
+
+# Compiled files
+*.class
+*.jar
+*.war
+*.ear
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
+
+# Environment files
+.env
+*.properties
+!src/main/resources/application.properties 

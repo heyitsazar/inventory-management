@@ -19,10 +19,6 @@ public class InventoryItem {
     @Column(nullable = false)
     private String name;
     
-    @NotBlank(message = "SKU is required")
-    @Column(unique = true, nullable = false)
-    private String sku;
-    
     @NotNull(message = "Quantity is required")
     @Min(value = 0, message = "Quantity cannot be negative")
     @Column(nullable = false)
