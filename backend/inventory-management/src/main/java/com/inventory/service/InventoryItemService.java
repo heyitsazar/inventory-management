@@ -17,6 +17,7 @@ public class InventoryItemService {
     private static final Logger logger = LoggerFactory.getLogger(InventoryItemService.class);
 
     private final InventoryItemRepository inventoryItemRepository;
+    private final EmailService emailService;
 
     public List<InventoryItem> getAllItems() {
         logger.info("Fetching all inventory items");
@@ -68,9 +69,30 @@ public class InventoryItemService {
         }
         
         item.setQuantity(item.getQuantity() - 1);
-        inventoryItemRepository.save(item);
+        InventoryItem savedItem = inventoryItemRepository.save(item);
+        
+        // Check if stock is below minimum level and alerts are enabled
+        if (savedItem.getAlertEnabled() && savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
+            emailService.sendLowStockAlert(savedItem);
+        }
         
         logger.info("Successfully purchased item with ID {}", id);
         return true;
+    }
+
+    @Transactional
+    public InventoryItem updateStock(Long id, Integer quantity) {
+        InventoryItem item = inventoryItemRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Item not found with ID: " + id));
+            
+        item.setQuantity(quantity);
+        InventoryItem savedItem = inventoryItemRepository.save(item);
+        
+        // Check if stock is below minimum level and alerts are enabled
+        if (savedItem.getAlertEnabled() && savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
+            emailService.sendLowStockAlert(savedItem);
+        }
+        
+        return savedItem;
     }
 } 

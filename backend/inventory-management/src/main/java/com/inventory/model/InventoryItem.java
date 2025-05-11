@@ -29,9 +29,12 @@ public class InventoryItem {
     @Column(name = "min_stock_level", nullable = false)
     private Integer minStockLevel;
     
+    @Column(name = "alert_enabled", nullable = false)
+    private Boolean alertEnabled = false; // Default to false
+    
     @Column
     private String description;
     
-    @Column(name = "unit_price")
+    @Column(name = "unit_price", nullable = false)
     private Double unitPrice;
 } 

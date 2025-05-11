@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/inventory")
@@ -105,6 +106,52 @@ public class InventoryController {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             logger.error("Failed to process purchase for item with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PutMapping("/{id}/min-stock")
+    public ResponseEntity<InventoryItem> updateMinStockLevel(
+            @PathVariable Long id,
+            @RequestBody Map<String, Integer> request) {
+        try {
+            Integer minStockLevel = request.get("minStockLevel");
+            if (minStockLevel == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            logger.info("Updating min stock level for item with ID: {}", id);
+            InventoryItem item = inventoryService.getItemById(id);
+            item.setMinStockLevel(minStockLevel);
+            return ResponseEntity.ok(inventoryService.updateItem(id, item));
+        } catch (EntityNotFoundException e) {
+            logger.warn("Item not found with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Failed to update min stock level for item with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PutMapping("/{id}/toggle-alert")
+    public ResponseEntity<InventoryItem> toggleAlert(
+            @PathVariable Long id,
+            @RequestBody Map<String, Boolean> request) {
+        try {
+            Boolean alertEnabled = request.get("alertEnabled");
+            if (alertEnabled == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            logger.info("Toggling alert for item with ID: {} to {}", id, alertEnabled);
+            InventoryItem item = inventoryService.getItemById(id);
+            item.setAlertEnabled(alertEnabled);
+            return ResponseEntity.ok(inventoryService.updateItem(id, item));
+        } catch (EntityNotFoundException e) {
+            logger.warn("Item not found with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Failed to toggle alert for item with ID {}: {}", id, e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }
