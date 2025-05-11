@@ -13,20 +13,20 @@ public class Purchase {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "item_id")
+    @JoinColumn(name = "item_id", nullable = false)
     private InventoryItem item;
 
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
-    private Double totalPrice;
-
-    @Column(nullable = false)
+    @Column(name = "purchase_date", nullable = false)
     private LocalDateTime purchaseDate;
 
-    @Column(nullable = false)
-    private String status; // PENDING, COMPLETED, FAILED
+    @Column(name = "total_price", nullable = false)
+    private Double totalPrice;
+
+    @Column(name = "source", nullable = false)
+    private String source; // "ESHOP" or "MANUAL"
 
     @PrePersist
     protected void onCreate() {

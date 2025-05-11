@@ -1,6 +1,8 @@
 package com.inventory.controller;
 
 import com.inventory.model.InventoryItem;
+import com.inventory.model.InventoryHistory;
+import com.inventory.model.Purchase;
 import com.inventory.service.InventoryItemService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/inventory")
@@ -175,6 +178,79 @@ public class InventoryController {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             logger.error("Failed to toggle automatic restock for item with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/{id}/purchases")
+    public ResponseEntity<List<Purchase>> getPurchaseHistory(@PathVariable Long id) {
+        try {
+            logger.info("Fetching purchase history for item with ID: {}", id);
+            List<Purchase> purchases = inventoryService.getPurchaseHistory(id);
+            return ResponseEntity.ok(purchases);
+        } catch (EntityNotFoundException e) {
+            logger.warn("Item not found with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Failed to fetch purchase history for item with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/purchases/source/{source}")
+    public ResponseEntity<List<Purchase>> getPurchaseHistoryBySource(@PathVariable String source) {
+        try {
+            logger.info("Fetching purchase history for source: {}", source);
+            List<Purchase> purchases = inventoryService.getPurchaseHistoryBySource(source);
+            return ResponseEntity.ok(purchases);
+        } catch (Exception e) {
+            logger.error("Failed to fetch purchase history for source {}: {}", source, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<InventoryHistory>> getItemHistory(@PathVariable Long id) {
+        try {
+            logger.info("Fetching inventory history for item with ID: {}", id);
+            List<InventoryHistory> history = inventoryService.getItemHistory(id);
+            return ResponseEntity.ok(history);
+        } catch (EntityNotFoundException e) {
+            logger.warn("Item not found with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Failed to fetch inventory history for item with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/{id}/history/range")
+    public ResponseEntity<List<InventoryHistory>> getItemHistoryByDateRange(
+            @PathVariable Long id,
+            @RequestParam LocalDateTime startDate,
+            @RequestParam LocalDateTime endDate) {
+        try {
+            logger.info("Fetching inventory history for item with ID: {} between {} and {}", 
+                id, startDate, endDate);
+            List<InventoryHistory> history = inventoryService.getItemHistoryByDateRange(id, startDate, endDate);
+            return ResponseEntity.ok(history);
+        } catch (EntityNotFoundException e) {
+            logger.warn("Item not found with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Failed to fetch inventory history for item with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/near-minimum")
+    public ResponseEntity<List<InventoryItem>> getItemsNearMinimumStock() {
+        try {
+            logger.info("Fetching items near minimum stock level");
+            List<InventoryItem> items = inventoryService.getItemsNearMinimumStock();
+            return ResponseEntity.ok(items);
+        } catch (Exception e) {
+            logger.error("Failed to fetch items near minimum stock level: {}", e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }
