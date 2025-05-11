@@ -182,6 +182,35 @@ public class InventoryController {
         }
     }
 
+    @PutMapping("/{id}/toggle-auto-calculation")
+    public ResponseEntity<InventoryItem> toggleAutoCalculation(
+            @PathVariable Long id,
+            @RequestBody Map<String, Boolean> request) {
+        try {
+            Boolean autoCalculationEnabled = request.get("autoCalculationEnabled");
+            if (autoCalculationEnabled == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            logger.info("Toggling auto-calculation for item with ID: {} to {}", id, autoCalculationEnabled);
+            InventoryItem item = inventoryService.getItemById(id);
+            item.setAutoCalculationEnabled(autoCalculationEnabled);
+            
+            // If enabling auto-calculation, calculate safety stock
+            if (autoCalculationEnabled) {
+                item.setSafetyStock(item.getMinStockLevel() + (int)(item.getMinStockLevel() * 0.2));
+            }
+            
+            return ResponseEntity.ok(inventoryService.updateItem(id, item));
+        } catch (EntityNotFoundException e) {
+            logger.warn("Item not found with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Failed to toggle auto-calculation for item with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @GetMapping("/{id}/purchases")
     public ResponseEntity<List<Purchase>> getPurchaseHistory(@PathVariable Long id) {
         try {
