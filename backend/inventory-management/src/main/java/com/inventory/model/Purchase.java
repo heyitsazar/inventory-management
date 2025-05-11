@@ -6,8 +6,8 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "orders")
-public class Order {
+@Table(name = "purchases")
+public class Purchase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -19,20 +19,17 @@ public class Order {
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(name = "order_date")
-    private LocalDateTime orderDate;
-
-    @Column(name = "total_price", nullable = false)
+    @Column(nullable = false)
     private Double totalPrice;
 
     @Column(nullable = false)
-    private String status; // COMPLETED, CANCELLED
+    private LocalDateTime purchaseDate;
+
+    @Column(nullable = false)
+    private String status; // PENDING, COMPLETED, FAILED
 
     @PrePersist
     protected void onCreate() {
-        orderDate = LocalDateTime.now();
-        if (item != null && quantity != null) {
-            totalPrice = item.getUnitPrice() * quantity;
-        }
+        purchaseDate = LocalDateTime.now();
     }
 } 

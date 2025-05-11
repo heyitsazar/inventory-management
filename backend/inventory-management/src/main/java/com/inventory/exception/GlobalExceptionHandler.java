@@ -1,20 +1,21 @@
 package com.inventory.exception;
 
+import com.inventory.model.ErrorResponse;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestControllerAdvice
+@ControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(InventoryException.class)
@@ -36,7 +37,7 @@ public class GlobalExceptionHandler {
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.NOT_FOUND.value(),
-                "ENTITY_NOT_FOUND",
+                "NOT_FOUND",
                 ex.getMessage(),
                 request.getDescription(false)
         );
@@ -49,7 +50,7 @@ public class GlobalExceptionHandler {
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
-                "INVALID_ARGUMENT",
+                "BAD_REQUEST",
                 ex.getMessage(),
                 request.getDescription(false)
         );
@@ -90,13 +91,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGlobalException(
+    public ResponseEntity<ErrorResponse> handleAllUncaughtException(
             Exception ex, WebRequest request) {
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "INTERNAL_ERROR",
-                "An unexpected error occurred. Please contact support if the problem persists. Details: " + ex.getMessage(),
+                "INTERNAL_SERVER_ERROR",
+                "An unexpected error occurred. Please contact support if the problem persists.",
                 request.getDescription(false)
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);

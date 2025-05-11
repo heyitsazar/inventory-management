@@ -1,7 +1,0 @@
-/Users/azar/Thesis Project/inventory-management/backend/inventory-management/src/main/java/com/inventory/controller/InventoryItemController.java
-/Users/azar/Thesis Project/inventory-management/backend/inventory-management/src/main/java/com/inventory/repository/InventoryItemRepository.java
-/Users/azar/Thesis Project/inventory-management/backend/inventory-management/src/main/java/com/inventory/InventoryManagementApplication.java
-/Users/azar/Thesis Project/inventory-management/backend/inventory-management/src/main/java/com/inventory/model/InventoryItem.java
-/Users/azar/Thesis Project/inventory-management/backend/inventory-management/src/main/java/com/inventory/service/InventoryItemService.java
-/Users/azar/Thesis Project/inventory-management/backend/inventory-management/src/main/java/com/inventory/exception/ErrorResponse.java
-/Users/azar/Thesis Project/inventory-management/backend/inventory-management/src/main/java/com/inventory/exception/GlobalExceptionHandler.java

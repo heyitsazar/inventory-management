@@ -40,4 +40,8 @@ public class InventoryException extends RuntimeException {
             "DUPLICATE_SKU"
         );
     }
+
+    public static InventoryException tooManyRequests(String message) {
+        return new InventoryException(message, "TOO_MANY_REQUESTS");
+    }
 } 

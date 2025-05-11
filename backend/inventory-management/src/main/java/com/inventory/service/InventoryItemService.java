@@ -6,27 +6,28 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class InventoryItemService {
+    private static final Logger logger = LoggerFactory.getLogger(InventoryItemService.class);
 
     private final InventoryItemRepository inventoryItemRepository;
 
     public List<InventoryItem> getAllItems() {
+        logger.info("Fetching all inventory items");
         List<InventoryItem> items = inventoryItemRepository.findAll();
-        if (items.isEmpty()) {
-            throw new EntityNotFoundException("No inventory items found");
-        }
-        return items;
+        return items; // Will return empty list if no items found
     }
 
     public InventoryItem getItemById(Long id) {
+        logger.info("Fetching inventory item with ID: {}", id);
         return inventoryItemRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(
-                    String.format("Inventory item with ID %d not found", id)));
+                .orElseThrow(() -> new EntityNotFoundException("Item not found with ID: " + id));
     }
 
     @Transactional
@@ -55,5 +56,21 @@ public class InventoryItemService {
                 String.format("Cannot delete: Inventory item with ID %d not found", id));
         }
         inventoryItemRepository.deleteById(id);
+    }
+
+    @Transactional
+    public boolean purchaseItem(Long id) {
+        InventoryItem item = getItemById(id);
+        
+        if (item.getQuantity() <= 0) {
+            logger.warn("Cannot purchase item with ID {}: Not enough stock", id);
+            return false;
+        }
+        
+        item.setQuantity(item.getQuantity() - 1);
+        inventoryItemRepository.save(item);
+        
+        logger.info("Successfully purchased item with ID {}", id);
+        return true;
     }
 } 
