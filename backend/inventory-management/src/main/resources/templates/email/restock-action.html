@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #d4edda; color: #155724; padding: 20px; border-radius: 5px; }
+        .content { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-top: 20px; }
+        .item-details { margin: 20px 0; }
+        .item-details p { margin: 10px 0; }
+        .footer { margin-top: 20px; font-size: 0.9em; color: #6c757d; }
+        .stock-warning { color: #dc3545; font-weight: bold; }
+        .action-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>🔄 Automatic Restock Action Triggered</h2>
+        </div>
+        <div class="content">
+            <h3>Restock Details</h3>
+            <div class="item-details">
+                <p><strong>Item Name:</strong> ${itemName}</p>
+                <p><strong>Current Stock:</strong> <span class="stock-warning">${currentStock}</span></p>
+                <p><strong>Minimum Stock Level:</strong> ${minStockLevel}</p>
+                <p><strong>Restock Quantity:</strong> ${restockQuantity}</p>
+                <p><strong>Unit Price:</strong> $${unitPrice}</p>
+                <p><strong>Description:</strong> ${description}</p>
+            </div>
+            <p>An automatic restock order has been placed with the supplier. The system will notify you when the order is fulfilled.</p>
+            <a href="http://localhost:8080/api/inventory/${itemId}" class="action-button">View Item Details</a>
+        </div>
+        <div class="footer">
+            <p>Action triggered at: ${timestamp}</p>
+            <p>This is an automated message from the Inventory Management System.</p>
+        </div>
+    </div>
+</body>
+</html> 

@@ -18,6 +18,7 @@ public class InventoryItemService {
 
     private final InventoryItemRepository inventoryItemRepository;
     private final EmailService emailService;
+    private final SupplierService supplierService;
 
     public List<InventoryItem> getAllItems() {
         logger.info("Fetching all inventory items");
@@ -46,6 +47,8 @@ public class InventoryItemService {
         existingItem.setMinStockLevel(updatedItem.getMinStockLevel());
         existingItem.setDescription(updatedItem.getDescription());
         existingItem.setUnitPrice(updatedItem.getUnitPrice());
+        existingItem.setAlertEnabled(updatedItem.getAlertEnabled());
+        existingItem.setActionEnabled(updatedItem.getActionEnabled());
         
         return inventoryItemRepository.save(existingItem);
     }
@@ -71,9 +74,28 @@ public class InventoryItemService {
         item.setQuantity(item.getQuantity() - 1);
         InventoryItem savedItem = inventoryItemRepository.save(item);
         
-        // Check if stock is below minimum level and alerts are enabled
-        if (savedItem.getAlertEnabled() && savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
-            emailService.sendLowStockAlert(savedItem);
+        // Check if stock is below minimum level
+        if (savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
+            // Send alert if enabled
+            if (savedItem.getAlertEnabled()) {
+                emailService.sendLowStockAlert(savedItem);
+            }
+            
+            // Trigger automatic restock if enabled
+            if (savedItem.getActionEnabled()) {
+                int restockQuantity = savedItem.getMinStockLevel() * 2; // Order double the min level
+                boolean orderPlaced = supplierService.placeOrder(savedItem.getId(), restockQuantity);
+                if (orderPlaced) {
+                    // Update inventory with new stock
+                    savedItem.setQuantity(savedItem.getQuantity() + restockQuantity);
+                    inventoryItemRepository.save(savedItem);
+                    logger.info("Updated inventory quantity for item {} after restock. New quantity: {}", 
+                        savedItem.getId(), savedItem.getQuantity());
+                    
+                    // Send restock confirmation email
+                    emailService.sendRestockActionEmail(savedItem, restockQuantity);
+                }
+            }
         }
         
         logger.info("Successfully purchased item with ID {}", id);
@@ -88,9 +110,28 @@ public class InventoryItemService {
         item.setQuantity(quantity);
         InventoryItem savedItem = inventoryItemRepository.save(item);
         
-        // Check if stock is below minimum level and alerts are enabled
-        if (savedItem.getAlertEnabled() && savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
-            emailService.sendLowStockAlert(savedItem);
+        // Check if stock is below minimum level
+        if (savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
+            // Send alert if enabled
+            if (savedItem.getAlertEnabled()) {
+                emailService.sendLowStockAlert(savedItem);
+            }
+            
+            // Trigger automatic restock if enabled
+            if (savedItem.getActionEnabled()) {
+                int restockQuantity = savedItem.getMinStockLevel() * 2; // Order double the min level
+                boolean orderPlaced = supplierService.placeOrder(savedItem.getId(), restockQuantity);
+                if (orderPlaced) {
+                    // Update inventory with new stock
+                    savedItem.setQuantity(savedItem.getQuantity() + restockQuantity);
+                    inventoryItemRepository.save(savedItem);
+                    logger.info("Updated inventory quantity for item {} after restock. New quantity: {}", 
+                        savedItem.getId(), savedItem.getQuantity());
+                    
+                    // Send restock confirmation email
+                    emailService.sendRestockActionEmail(savedItem, restockQuantity);
+                }
+            }
         }
         
         return savedItem;

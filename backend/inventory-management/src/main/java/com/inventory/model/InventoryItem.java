@@ -32,6 +32,9 @@ public class InventoryItem {
     @Column(name = "alert_enabled", nullable = false)
     private Boolean alertEnabled = false; // Default to false
     
+    @Column(name = "action_enabled", nullable = false)
+    private Boolean actionEnabled = false;
+    
     @Column
     private String description;
     

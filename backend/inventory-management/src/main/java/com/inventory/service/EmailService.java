@@ -53,4 +53,34 @@ public class EmailService {
             logger.error("Failed to send email alert: {}", e.getMessage());
         }
     }
+
+    public void sendRestockActionEmail(InventoryItem item, Integer restockQuantity) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setTo("heyitsazar@gmail.com");
+            helper.setSubject("🔄 Restock Action: " + item.getName());
+            
+            String currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            
+            String template = Files.readString(Paths.get("src/main/resources/templates/email/restock-action.html"));
+            
+            String htmlContent = template
+                .replace("${itemName}", item.getName())
+                .replace("${currentStock}", String.valueOf(item.getQuantity()))
+                .replace("${minStockLevel}", String.valueOf(item.getMinStockLevel()))
+                .replace("${restockQuantity}", String.valueOf(restockQuantity))
+                .replace("${unitPrice}", String.format("%.2f", item.getUnitPrice()))
+                .replace("${description}", item.getDescription())
+                .replace("${itemId}", String.valueOf(item.getId()))
+                .replace("${timestamp}", currentTime);
+            
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+            logger.info("Restock action email sent for item: {}", item.getName());
+        } catch (MessagingException | IOException e) {
+            logger.error("Failed to send restock action email: {}", e.getMessage());
+        }
+    }
 } 

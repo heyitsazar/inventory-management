@@ -155,4 +155,27 @@ public class InventoryController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @PutMapping("/{id}/toggle-action")
+    public ResponseEntity<InventoryItem> toggleAction(
+            @PathVariable Long id,
+            @RequestBody Map<String, Boolean> request) {
+        try {
+            Boolean actionEnabled = request.get("actionEnabled");
+            if (actionEnabled == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            logger.info("Toggling automatic restock for item with ID: {} to {}", id, actionEnabled);
+            InventoryItem item = inventoryService.getItemById(id);
+            item.setActionEnabled(actionEnabled);
+            return ResponseEntity.ok(inventoryService.updateItem(id, item));
+        } catch (EntityNotFoundException e) {
+            logger.warn("Item not found with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Failed to toggle automatic restock for item with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 } 
