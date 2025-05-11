@@ -10,6 +10,7 @@
         .item-details p { margin: 10px 0; }
         .footer { margin-top: 20px; font-size: 0.9em; color: #6c757d; }
         .stock-warning { color: #dc3545; font-weight: bold; }
+        .stock-info { color: #0c5460; }
         .action-button {
             display: inline-block;
             padding: 10px 20px;
@@ -24,7 +25,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>🚨 Low Stock Alert</h2>
+            <h2>🚨 Stock Level Alert</h2>
         </div>
         <div class="content">
             <h3>Item Details</h3>
@@ -32,10 +33,19 @@
                 <p><strong>Item Name:</strong> ${itemName}</p>
                 <p><strong>Current Stock:</strong> <span class="stock-warning">${currentStock}</span></p>
                 <p><strong>Minimum Stock Level:</strong> ${minStockLevel}</p>
+                <p th:if="${safetyStock != null}"><strong>Safety Stock Level:</strong> ${safetyStock}</p>
                 <p><strong>Unit Price:</strong> $${unitPrice}</p>
                 <p><strong>Description:</strong> ${description}</p>
             </div>
-            <p>This item has fallen below its minimum stock level. Please take action to replenish the inventory.</p>
+            <p class="stock-info">
+                <span th:if="${currentStock <= minStockLevel}">⚠️ URGENT: Stock below minimum level!</span>
+                <span th:unless="${currentStock <= minStockLevel}" th:if="${safetyStock != null && currentStock <= safetyStock}">⚠️ WARNING: Stock below safety level.</span>
+                <span th:unless="${currentStock <= minStockLevel || (safetyStock != null && currentStock <= safetyStock)}">⚠️ WARNING: Stock is low.</span>
+            </p>
+            <p>
+                <span th:if="${autoCalculationEnabled}">The system will automatically place an order if stock falls below minimum level.</span>
+                <span th:unless="${autoCalculationEnabled}">Please manually place an order as automatic ordering is disabled.</span>
+            </p>
             <a href="http://localhost:8080/api/inventory/${itemId}" class="action-button">View Item Details</a>
         </div>
         <div class="footer">

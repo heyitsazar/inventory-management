@@ -10,6 +10,7 @@
         .item-details p { margin: 10px 0; }
         .footer { margin-top: 20px; font-size: 0.9em; color: #6c757d; }
         .stock-warning { color: #dc3545; font-weight: bold; }
+        .stock-success { color: #155724; }
         .action-button {
             display: inline-block;
             padding: 10px 20px;
@@ -24,23 +25,32 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>🔄 Automatic Restock Action Triggered</h2>
+            <h2>🔄 Restock Order Placed</h2>
         </div>
         <div class="content">
-            <h3>Restock Details</h3>
+            <h3>Order Details</h3>
             <div class="item-details">
                 <p><strong>Item Name:</strong> ${itemName}</p>
                 <p><strong>Current Stock:</strong> <span class="stock-warning">${currentStock}</span></p>
                 <p><strong>Minimum Stock Level:</strong> ${minStockLevel}</p>
-                <p><strong>Restock Quantity:</strong> ${restockQuantity}</p>
+                <p th:if="${safetyStock != null}"><strong>Safety Stock Level:</strong> ${safetyStock}</p>
+                <p><strong>Order Quantity:</strong> <span class="stock-success">${restockQuantity}</span></p>
                 <p><strong>Unit Price:</strong> $${unitPrice}</p>
+                <p><strong>Total Order Value:</strong> $${totalValue}</p>
                 <p><strong>Description:</strong> ${description}</p>
             </div>
-            <p>An automatic restock order has been placed with the supplier. The system will notify you when the order is fulfilled.</p>
+            <p class="stock-success">
+                ✅ A restock order has been placed with the supplier.
+            </p>
+            <p>
+                <span th:if="${safetyStock != null}">The order quantity was calculated based on the safety stock level to ensure optimal inventory levels.</span>
+                <span th:unless="${safetyStock != null}">The order quantity was calculated based on the minimum stock level to ensure optimal inventory levels.</span>
+                You will be notified when the order is fulfilled.
+            </p>
             <a href="http://localhost:8080/api/inventory/${itemId}" class="action-button">View Item Details</a>
         </div>
         <div class="footer">
-            <p>Action triggered at: ${timestamp}</p>
+            <p>Order placed at: ${timestamp}</p>
             <p>This is an automated message from the Inventory Management System.</p>
         </div>
     </div>

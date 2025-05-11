@@ -51,28 +51,48 @@ public class InventoryItemService {
 
     @Transactional
     public InventoryItem createItem(InventoryItem item) {
+        // Validate required fields
+        if (item.getMinStockLevel() == null) {
+            throw new IllegalArgumentException("Minimum stock level is required");
+        }
+        
+        // Calculate safety stock if auto-calculation is enabled
+        if (item.getAutoCalculationEnabled()) {
+            item.setSafetyStock(item.getMinStockLevel() + (int)(item.getMinStockLevel() * 0.2));
+        }
+        
         InventoryItem savedItem = inventoryItemRepository.save(item);
         recordInventoryChange(savedItem, 0, InventoryHistory.ChangeType.INITIAL_STOCK, null, null);
         return savedItem;
     }
 
     @Transactional
-    public InventoryItem updateItem(Long id, InventoryItem updatedItem) {
+    public InventoryItem updateItem(Long id, InventoryItem item) {
         InventoryItem existingItem = getItemById(id);
-        Integer previousQuantity = existingItem.getQuantity();
         
-        existingItem.setName(updatedItem.getName());
-        existingItem.setQuantity(updatedItem.getQuantity());
-        existingItem.setMinStockLevel(updatedItem.getMinStockLevel());
-        existingItem.setDescription(updatedItem.getDescription());
-        existingItem.setUnitPrice(updatedItem.getUnitPrice());
-        existingItem.setAlertEnabled(updatedItem.getAlertEnabled());
-        existingItem.setActionEnabled(updatedItem.getActionEnabled());
+        // Only validate minStockLevel if it's being changed
+        if (item.getMinStockLevel() != null) {
+            // Calculate safety stock if auto-calculation is enabled
+            if (item.getAutoCalculationEnabled()) {
+                item.setSafetyStock(item.getMinStockLevel() + (int)(item.getMinStockLevel() * 0.2));
+            }
+        }
+        
+        // Update fields if they are provided
+        if (item.getName() != null) existingItem.setName(item.getName());
+        if (item.getDescription() != null) existingItem.setDescription(item.getDescription());
+        if (item.getQuantity() != null) existingItem.setQuantity(item.getQuantity());
+        if (item.getUnitPrice() != null) existingItem.setUnitPrice(item.getUnitPrice());
+        if (item.getMinStockLevel() != null) existingItem.setMinStockLevel(item.getMinStockLevel());
+        if (item.getSafetyStock() != null) existingItem.setSafetyStock(item.getSafetyStock());
+        if (item.getAlertEnabled() != null) existingItem.setAlertEnabled(item.getAlertEnabled());
+        if (item.getActionEnabled() != null) existingItem.setActionEnabled(item.getActionEnabled());
+        if (item.getAutoCalculationEnabled() != null) existingItem.setAutoCalculationEnabled(item.getAutoCalculationEnabled());
         
         InventoryItem savedItem = inventoryItemRepository.save(existingItem);
         
-        if (!previousQuantity.equals(savedItem.getQuantity())) {
-            recordInventoryChange(savedItem, previousQuantity, 
+        if (item.getQuantity() != null && !item.getQuantity().equals(savedItem.getQuantity())) {
+            recordInventoryChange(savedItem, item.getQuantity(), 
                 InventoryHistory.ChangeType.MANUAL_UPDATE, null, null);
         }
         
@@ -109,30 +129,39 @@ public class InventoryItemService {
         purchase.setSource(source);
         Purchase savedPurchase = purchaseRepository.save(purchase);
         
-        // If it's an eShop purchase, create an order
-        if ("ESHOP".equals(source)) {
-            Order order = new Order();
-            order.setItem(savedItem);
-            order.setQuantity(quantity);
-            order.setTotalPrice(savedItem.getUnitPrice() * quantity);
-            order.setStatus("COMPLETED");
-            orderRepository.save(order);
-            logger.info("Created order for eShop purchase: {} units of {}", 
-                quantity, savedItem.getName());
+        // Check stock levels and send appropriate alerts
+        if (savedItem.getAlertEnabled()) {
+            if (savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
+                // Urgent alert - stock at or below minimum
+                emailService.sendLowStockAlert(savedItem);
+                logger.warn("URGENT: Stock for item {} is at or below minimum level", savedItem.getName());
+            } else if (savedItem.getSafetyStock() != null && savedItem.getQuantity() <= savedItem.getSafetyStock()) {
+                // Normal alert - stock below safety level
+                emailService.sendLowStockAlert(savedItem);
+                logger.info("ALERT: Stock for item {} is below safety level", savedItem.getName());
+            }
         }
         
-        // Record inventory change
-        recordInventoryChange(savedItem, previousQuantity, 
-            InventoryHistory.ChangeType.PURCHASE, savedPurchase.getId(), "PURCHASE");
-        
-        // Check if stock is below minimum level
-        if (savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
-            if (savedItem.getAlertEnabled()) {
-                emailService.sendLowStockAlert(savedItem);
+        // Check if we need to place an order
+        if (savedItem.getActionEnabled()) {
+            boolean shouldOrder = false;
+            int restockQuantity = 0;
+            
+            if (savedItem.getSafetyStock() != null) {
+                // If safety stock is set, use it as trigger
+                if (savedItem.getQuantity() <= savedItem.getSafetyStock()) {
+                    shouldOrder = true;
+                    restockQuantity = savedItem.getSafetyStock() + (int)(savedItem.getSafetyStock() * 0.2);
+                }
+            } else {
+                // If no safety stock, use min stock level as trigger
+                if (savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
+                    shouldOrder = true;
+                    restockQuantity = savedItem.getMinStockLevel() + (int)(savedItem.getMinStockLevel() * 0.2);
+                }
             }
             
-            if (savedItem.getActionEnabled()) {
-                int restockQuantity = savedItem.getMinStockLevel() * 2;
+            if (shouldOrder) {
                 boolean orderPlaced = supplierService.placeOrder(savedItem.getId(), restockQuantity);
                 if (orderPlaced) {
                     previousQuantity = savedItem.getQuantity();
@@ -146,6 +175,10 @@ public class InventoryItemService {
                 }
             }
         }
+        
+        // Record inventory change
+        recordInventoryChange(savedItem, previousQuantity, 
+            InventoryHistory.ChangeType.PURCHASE, savedPurchase.getId(), "PURCHASE");
         
         logger.info("Successfully purchased {} units of item with ID {}", quantity, id);
         return true;
@@ -170,19 +203,47 @@ public class InventoryItemService {
         InventoryItem item = inventoryItemRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Item not found with ID: " + id));
             
+        // Validate minStockLevel exists
+        if (item.getMinStockLevel() == null) {
+            throw new IllegalStateException("Cannot update stock: Minimum stock level is not set for item " + id);
+        }
+            
         item.setQuantity(quantity);
         InventoryItem savedItem = inventoryItemRepository.save(item);
         
-        // Check if stock is below minimum level
-        if (savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
-            // Send alert if enabled
-            if (savedItem.getAlertEnabled()) {
+        // Check stock levels and send appropriate alerts
+        if (savedItem.getAlertEnabled()) {
+            if (savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
+                // Urgent alert - stock at or below minimum
                 emailService.sendLowStockAlert(savedItem);
+                logger.warn("URGENT: Stock for item {} is at or below minimum level", savedItem.getName());
+            } else if (savedItem.getSafetyStock() != null && savedItem.getQuantity() <= savedItem.getSafetyStock()) {
+                // Normal alert - stock below safety level
+                emailService.sendLowStockAlert(savedItem);
+                logger.info("ALERT: Stock for item {} is below safety level", savedItem.getName());
+            }
+        }
+        
+        // Check if we need to place an order
+        if (savedItem.getActionEnabled()) {
+            boolean shouldOrder = false;
+            int restockQuantity = 0;
+            
+            if (savedItem.getSafetyStock() != null) {
+                // If safety stock is set, use it as trigger
+                if (savedItem.getQuantity() <= savedItem.getSafetyStock()) {
+                    shouldOrder = true;
+                    restockQuantity = savedItem.getSafetyStock() + (int)(savedItem.getSafetyStock() * 0.2);
+                }
+            } else {
+                // If no safety stock, use min stock level as trigger
+                if (savedItem.getQuantity() <= savedItem.getMinStockLevel()) {
+                    shouldOrder = true;
+                    restockQuantity = savedItem.getMinStockLevel() + (int)(savedItem.getMinStockLevel() * 0.2);
+                }
             }
             
-            // Trigger automatic restock if enabled
-            if (savedItem.getActionEnabled()) {
-                int restockQuantity = savedItem.getMinStockLevel() * 2; // Order double the min level
+            if (shouldOrder) {
                 boolean orderPlaced = supplierService.placeOrder(savedItem.getId(), restockQuantity);
                 if (orderPlaced) {
                     // Update inventory with new stock

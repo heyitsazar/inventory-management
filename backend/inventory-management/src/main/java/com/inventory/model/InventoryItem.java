@@ -2,9 +2,9 @@ package com.inventory.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -15,9 +15,12 @@ public class InventoryItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @NotBlank(message = "Name is required")
+    @NotNull(message = "Name is required")
     @Column(nullable = false)
     private String name;
+    
+    @Column(length = 1000)
+    private String description;
     
     @NotNull(message = "Quantity is required")
     @Min(value = 0, message = "Quantity cannot be negative")
@@ -29,15 +32,36 @@ public class InventoryItem {
     @Column(name = "min_stock_level", nullable = false)
     private Integer minStockLevel;
     
+    @Min(value = 0, message = "Safety stock cannot be negative")
+    @Column(name = "safety_stock")
+    private Integer safetyStock;
+    
     @Column(name = "alert_enabled", nullable = false)
-    private Boolean alertEnabled = false; // Default to false
+    private Boolean alertEnabled = true;
     
     @Column(name = "action_enabled", nullable = false)
-    private Boolean actionEnabled = false;
+    private Boolean actionEnabled = true;
     
-    @Column
-    private String description;
+    @Column(name = "auto_calculation_enabled", nullable = false)
+    private Boolean autoCalculationEnabled = false;
     
     @Column(name = "unit_price", nullable = false)
     private Double unitPrice;
+    
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 } 
