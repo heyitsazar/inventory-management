@@ -13,6 +13,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/items")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*") // Allow all origins
 public class ItemController {
     private static final Logger logger = LoggerFactory.getLogger(ItemController.class);
     
@@ -32,4 +33,4 @@ public class ItemController {
             return ResponseEntity.internalServerError().build();
         }
     }
-} 
+}

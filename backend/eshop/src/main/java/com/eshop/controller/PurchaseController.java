@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 @RestController
 @RequestMapping("/api/purchases")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*") // Allow all origins
 public class PurchaseController {
     private static final Logger logger = LoggerFactory.getLogger(PurchaseController.class);
 
@@ -27,4 +28,4 @@ public class PurchaseController {
             return ResponseEntity.internalServerError().build();
         }
     }
-} 
+}

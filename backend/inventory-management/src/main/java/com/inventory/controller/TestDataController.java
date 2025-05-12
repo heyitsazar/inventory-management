@@ -2,6 +2,7 @@ package com.inventory.controller;
 
 import com.inventory.service.TestDataGenerator;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/test")
+@CrossOrigin(origins = "*") // Allow all origins
 public class TestDataController {
     private static final Logger logger = LoggerFactory.getLogger(TestDataController.class);
     

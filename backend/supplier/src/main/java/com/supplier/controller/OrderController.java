@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*") // Allow all origins
 public class OrderController {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
     

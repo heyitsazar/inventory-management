@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/inventory")
+@CrossOrigin(origins = "*") // Allow all origins
 public class InventoryController {
     private static final Logger logger = LoggerFactory.getLogger(InventoryController.class);
 

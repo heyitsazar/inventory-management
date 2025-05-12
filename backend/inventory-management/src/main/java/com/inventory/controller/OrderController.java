@@ -14,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
+@CrossOrigin(origins = "*") // Allow all origins
 public class OrderController {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
 
