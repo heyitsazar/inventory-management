@@ -35,4 +35,4 @@ logs/
 # Environment files
 .env
 *.properties
-!src/main/resources/application.properties 
+!**/src/main/resources/application.properties 
