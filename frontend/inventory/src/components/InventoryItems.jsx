@@ -35,6 +35,7 @@ const InventoryItems = () => {
     minStockLevel: '',
     alertEnabled: true,
     actionEnabled: true,
+    autoCalculationEnabled: false,
   });
   const [editItem, setEditItem] = useState(null);
   const [openModal, setOpenModal] = useState(false);
@@ -64,6 +65,7 @@ const InventoryItems = () => {
         quantity: parseInt(newItem.quantity) || 0,
         unitPrice: parseFloat(newItem.unitPrice) || 0,
         minStockLevel: parseInt(newItem.minStockLevel) || 0,
+        autoCalculationEnabled: newItem.autoCalculationEnabled,
       };
       const createdItem = await inventoryService.createItem(item);
       setItems((prev) => [...prev, createdItem]);
@@ -75,6 +77,7 @@ const InventoryItems = () => {
         minStockLevel: '',
         alertEnabled: true,
         actionEnabled: true,
+        autoCalculationEnabled: false,
       });
       toast.success('Item created successfully!');
     } catch (err) {
@@ -84,7 +87,7 @@ const InventoryItems = () => {
   };
 
   const handleEdit = (item) => {
-    setEditItem(item);
+    setEditItem({ ...item });
     setOpenModal(true);
   };
 
@@ -98,6 +101,7 @@ const InventoryItems = () => {
         minStockLevel: parseInt(editItem.minStockLevel) || 0,
         alertEnabled: editItem.alertEnabled,
         actionEnabled: editItem.actionEnabled,
+        autoCalculationEnabled: editItem.autoCalculationEnabled,
       };
       const updated = await inventoryService.updateItem(editItem.id, updatedItem);
       setItems((prev) => prev.map((item) => (item.id === editItem.id ? updated : item)));
@@ -122,10 +126,10 @@ const InventoryItems = () => {
   };
 
   return (
-    <Box sx={{ bgcolor: 'background.paper', borderRadius: 3, p: 3 }}>
-      <Typography variant="h5" mb={3}>Inventory Items</Typography>
-      <Box component="form" mb={4}>
-        <Grid container spacing={2}>
+    <Box sx={{ bgcolor: 'background.paper', borderRadius: 3, p: 4, maxWidth: 1200, mx: 'auto', mt: 4 }}>
+      <Typography variant="h4" fontWeight="bold" mb={4}>Inventory Items</Typography>
+      <Box component="form" mb={5}>
+        <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
@@ -133,6 +137,7 @@ const InventoryItems = () => {
               value={newItem.name}
               onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
               size="small"
+              variant="outlined"
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -142,6 +147,7 @@ const InventoryItems = () => {
               value={newItem.description}
               onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
               size="small"
+              variant="outlined"
             />
           </Grid>
           <Grid item xs={12} sm={4} md={2}>
@@ -152,6 +158,7 @@ const InventoryItems = () => {
               value={newItem.quantity}
               onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
               size="small"
+              variant="outlined"
             />
           </Grid>
           <Grid item xs={12} sm={4} md={2}>
@@ -162,6 +169,7 @@ const InventoryItems = () => {
               value={newItem.unitPrice}
               onChange={(e) => setNewItem({ ...newItem, unitPrice: e.target.value })}
               size="small"
+              variant="outlined"
             />
           </Grid>
           <Grid item xs={12} sm={4} md={2}>
@@ -172,27 +180,39 @@ const InventoryItems = () => {
               value={newItem.minStockLevel}
               onChange={(e) => setNewItem({ ...newItem, minStockLevel: e.target.value })}
               size="small"
+              variant="outlined"
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={newItem.alertEnabled}
-                  onChange={(e) => setNewItem({ ...newItem, alertEnabled: e.target.checked })}
-                />
-              }
-              label="Alerts"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={newItem.actionEnabled}
-                  onChange={(e) => setNewItem({ ...newItem, actionEnabled: e.target.checked })}
-                />
-              }
-              label="Auto-Actions"
-            />
+            <Box display="flex" flexWrap="wrap" gap={2}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={newItem.alertEnabled}
+                    onChange={(e) => setNewItem({ ...newItem, alertEnabled: e.target.checked })}
+                  />
+                }
+                label="Enable Alerts"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={newItem.actionEnabled}
+                    onChange={(e) => setNewItem({ ...newItem, actionEnabled: e.target.checked })}
+                  />
+                }
+                label="Enable Auto Reorder" // Renamed
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={newItem.autoCalculationEnabled}
+                    onChange={(e) => setNewItem({ ...newItem, autoCalculationEnabled: e.target.checked })}
+                  />
+                }
+                label="Enable Stock Optimization" // Renamed
+              />
+            </Box>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Button variant="contained" fullWidth onClick={handleCreate}>
@@ -206,22 +226,23 @@ const InventoryItems = () => {
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Typography color="error">{error}</Typography>
+        <Typography color="error" variant="h6" align="center">{error}</Typography>
       ) : items.length === 0 ? (
-        <Typography>No items available.</Typography>
+        <Typography variant="h6" align="center">No items available.</Typography>
       ) : (
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
           <Table>
             <TableHead>
-              <TableRow>
+              <TableRow sx={{ bgcolor: 'primary.light' }}>
                 <TableCell>Name</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell>Quantity</TableCell>
                 <TableCell>Unit Price</TableCell>
                 <TableCell>Min Stock</TableCell>
                 <TableCell>Alerts</TableCell>
-                <TableCell>Actions</TableCell>
-                <TableCell>Action</TableCell>
+                <TableCell>Auto Reorder</TableCell> {/* Renamed */}
+                <TableCell>Stock Optimization</TableCell> {/* Renamed */}
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -234,14 +255,15 @@ const InventoryItems = () => {
                   <TableCell>{item.minStockLevel}</TableCell>
                   <TableCell>{item.alertEnabled ? 'Yes' : 'No'}</TableCell>
                   <TableCell>{item.actionEnabled ? 'Yes' : 'No'}</TableCell>
-                  <TableCell>
-                    <IconButton component={NavLink} to={`/items/${item.id}`}>
+                  <TableCell>{item.autoCalculationEnabled ? 'Yes' : 'No'}</TableCell>
+                  <TableCell align="center">
+                    <IconButton component={NavLink} to={`/items/${item.id}`} size="small">
                       <Visibility />
                     </IconButton>
-                    <IconButton onClick={() => handleEdit(item)}>
+                    <IconButton onClick={() => handleEdit(item)} size="small">
                       <Edit />
                     </IconButton>
-                    <IconButton onClick={() => handleDelete(item.id)}>
+                    <IconButton onClick={() => handleDelete(item.id)} size="small" color="error">
                       <Delete />
                     </IconButton>
                   </TableCell>
@@ -262,28 +284,30 @@ const InventoryItems = () => {
             p: 4,
             borderRadius: 3,
             boxShadow: 24,
-            width: { xs: '90%', sm: 500 },
+            width: { xs: '90%', sm: 600 },
           }}
         >
-          <Typography variant="h6" mb={3}>Edit Item</Typography>
+          <Typography variant="h5" fontWeight="medium" mb={3}>Edit Item</Typography>
           {editItem && (
-            <Grid container spacing={2}>
+            <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Name"
-                  value={editItem.name}
+                  value={editItem.name || ''}
                   onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
                   size="small"
+                  variant="outlined"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Description"
-                  value={editItem.description}
+                  value={editItem.description || ''}
                   onChange={(e) => setEditItem({ ...editItem, description: e.target.value })}
                   size="small"
+                  variant="outlined"
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
@@ -291,9 +315,10 @@ const InventoryItems = () => {
                   fullWidth
                   label="Quantity"
                   type="number"
-                  value={editItem.quantity}
+                  value={editItem.quantity || ''}
                   onChange={(e) => setEditItem({ ...editItem, quantity: e.target.value })}
                   size="small"
+                  variant="outlined"
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
@@ -301,9 +326,10 @@ const InventoryItems = () => {
                   fullWidth
                   label="Unit Price"
                   type="number"
-                  value={editItem.unitPrice}
+                  value={editItem.unitPrice || ''}
                   onChange={(e) => setEditItem({ ...editItem, unitPrice: e.target.value })}
                   size="small"
+                  variant="outlined"
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
@@ -311,35 +337,47 @@ const InventoryItems = () => {
                   fullWidth
                   label="Min Stock Level"
                   type="number"
-                  value={editItem.minStockLevel}
+                  value={editItem.minStockLevel || ''}
                   onChange={(e) => setEditItem({ ...editItem, minStockLevel: e.target.value })}
                   size="small"
+                  variant="outlined"
                 />
               </Grid>
               <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={editItem.alertEnabled}
-                      onChange={(e) => setEditItem({ ...editItem, alertEnabled: e.target.checked })}
-                    />
-                  }
-                  label="Alerts"
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={editItem.actionEnabled}
-                      onChange={(e) => setEditItem({ ...editItem, actionEnabled: e.target.checked })}
-                    />
-                  }
-                  label="Auto-Actions"
-                />
+                <Box display="flex" flexWrap="wrap" gap={2}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={editItem.alertEnabled || false}
+                        onChange={(e) => setEditItem({ ...editItem, alertEnabled: e.target.checked })}
+                      />
+                    }
+                    label="Enable Alerts"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={editItem.actionEnabled || false}
+                        onChange={(e) => setEditItem({ ...editItem, actionEnabled: e.target.checked })}
+                      />
+                    }
+                    label="Enable Auto Reorder" // Renamed
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={editItem.autoCalculationEnabled || false}
+                        onChange={(e) => setEditItem({ ...editItem, autoCalculationEnabled: e.target.checked })}
+                      />
+                    }
+                    label="Enable Stock Optimization" // Renamed
+                  />
+                </Box>
               </Grid>
               <Grid item xs={12}>
                 <Box display="flex" gap={2}>
-                  <Button variant="contained" onClick={handleUpdate}>Save</Button>
-                  <Button variant="outlined" onClick={() => setOpenModal(false)}>Cancel</Button>
+                  <Button variant="contained" color="primary" onClick={handleUpdate}>Save</Button>
+                  <Button variant="outlined" color="secondary" onClick={() => setOpenModal(false)}>Cancel</Button>
                 </Box>
               </Grid>
             </Grid>
