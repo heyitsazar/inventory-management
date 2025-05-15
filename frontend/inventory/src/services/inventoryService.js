@@ -138,6 +138,41 @@ const inventoryService = {
     });
   },
 
+  // Purchases
+  async getAllPurchases() {
+    // No payload: Retrieves all purchases
+    // if 200 example {
+    //     "message": "Successfully retrieved all purchases",
+    //     "data": [
+    //         {
+    //             "id": 1,
+    //             "item": {
+    //                 "id": 1,
+    //                 "name": "Critical Stock Item",
+    //                 "description": "This item is always near minimum stock for testing",
+    //                 "quantity": 12,
+    //                 "minStockLevel": 10,
+    //                 "safetyStock": null,
+    //                 "alertEnabled": true,
+    //                 "actionEnabled": true,
+    //                 "autoCalculationEnabled": false,
+    //                 "unitPrice": 999.99,
+    //                 "createdAt": "2025-05-15T21:52:13.859921",
+    //                 "updatedAt": "2025-05-15T21:52:13.859921"
+    //             },
+    //             "quantity": 2,
+    //             "purchaseDate": "2025-05-15T21:52:14.115893",
+    //             "totalPrice": 1999.98,
+    //             "source": "ESHOP"
+    //         },
+    //         ...
+    //     ]
+    // }
+    return apiRequest({
+      base: BASE_URLS.inventory,
+      endpoint: "/api/purchases",
+    });
+  },
   // Ordering from Supplier
   async getAllOrders() {
     // No payload: Retrieves all supplier orders

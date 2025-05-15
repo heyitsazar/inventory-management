@@ -10,273 +10,277 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Button,
-  TextField,
   CircularProgress,
-  IconButton,
-  Divider,
+  TextField,
+  Button,
   Grid,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Card,
+  CardContent,
 } from '@mui/material';
-import { Delete, AddShoppingCart } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { format } from 'date-fns';
-import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'react-toastify';
 
-const PurchasedItems = () => {
-  const [nearMinimumItems, setNearMinimumItems] = useState([]);
-  const [items, setItems] = useState([]); // For item lookup
-  const [cartItems, setCartItems] = useState(() => JSON.parse(localStorage.getItem('cartItems')) || []);
-  const [purchaseHistory, setPurchaseHistory] = useState(() => JSON.parse(localStorage.getItem('purchaseHistory')) || []);
+const PurchaseItems = () => {
+  const [purchases, setPurchases] = useState([]);
+  const [filteredPurchases, setFilteredPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [orderQuantities, setOrderQuantities] = useState({});
+  const [filters, setFilters] = useState({
+    source: '',
+    itemName: '',
+    startDate: null,
+    endDate: null,
+  });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchPurchases = async () => {
       try {
         setLoading(true);
-        const [nearMinimumData, itemsData] = await Promise.all([
-          inventoryService.getItemsNearMinimum(),
-          inventoryService.getAllItems(),
-        ]);
-        setNearMinimumItems(nearMinimumData);
-        setItems(itemsData);
+        const response = await inventoryService.getAllPurchases();
+        setPurchases(response.data);
+        setFilteredPurchases(response.data);
         setError(null);
       } catch (err) {
-        setError('Failed to load data.');
-        toast.error('Failed to load data.');
+        setError('Failed to load purchase history.');
+        toast.error('Failed to load purchase history.');
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    fetchPurchases();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('cartItems', JSON.stringify(cartItems));
-  }, [cartItems]);
+    const applyFilters = () => {
+      let result = [...purchases];
 
-  useEffect(() => {
-    localStorage.setItem('purchaseHistory', JSON.stringify(purchaseHistory));
-  }, [purchaseHistory]);
-
-  const handleQuantityChange = (itemId, value) => {
-    setOrderQuantities((prev) => ({
-      ...prev,
-      [itemId]: value,
-    }));
-  };
-
-  const handleOrder = async (itemId, quantity) => {
-    try {
-      await inventoryService.orderItemFromSupplier(itemId, quantity);
-      const item = items.find((i) => i.id === itemId);
-      setPurchaseHistory((prev) => [
-        ...prev,
-        {
-          purchaseId: uuidv4(),
-          id: itemId,
-          name: item?.name || 'Unknown',
-          unitPrice: item?.unitPrice || 0,
-          quantity,
-          timestamp: new Date().toISOString(),
-          status: 'Ordered',
-        },
-      ]);
-      toast.success('Order placed successfully!');
-    } catch (err) {
-      toast.error('Failed to place order.');
-      console.error(err);
-    }
-  };
-
-  const handleAddToCart = (itemId) => {
-    const itemToAdd = items.find((item) => item.id === itemId);
-    const existingItem = cartItems.find((item) => item.id === itemId);
-
-    if (existingItem) {
-      setCartItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item
-        )
-      );
-    } else {
-      setCartItems((prevItems) => [
-        ...prevItems,
-        {
-          id: itemId,
-          name: itemToAdd.name,
-          price: itemToAdd.unitPrice,
-          quantity: 1,
-        },
-      ]);
-    }
-    toast.success('Added to reorder cart!');
-  };
-
-  const handleRemoveFromCart = (itemId) => {
-    setCartItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
-    toast.info('Removed from reorder cart.');
-  };
-
-  const handleCheckout = async () => {
-    try {
-      for (const cartItem of cartItems) {
-        await inventoryService.orderItemFromSupplier(cartItem.id, cartItem.quantity);
-        setPurchaseHistory((prev) => [
-          ...prev,
-          {
-            purchaseId: uuidv4(),
-            id: cartItem.id,
-            name: cartItem.name,
-            unitPrice: cartItem.price,
-            quantity: cartItem.quantity,
-            timestamp: new Date().toISOString(),
-            status: 'Ordered',
-          },
-        ]);
+      if (filters.source) {
+        result = result.filter((purchase) => purchase.source === filters.source);
       }
-      setCartItems([]);
-      toast.success('Reorders placed successfully!');
-    } catch (err) {
-      toast.error('Failed to place reorders.');
-      console.error(err);
-    }
+
+      if (filters.itemName) {
+        result = result.filter((purchase) =>
+          purchase.item.name.toLowerCase().includes(filters.itemName.toLowerCase())
+        );
+      }
+
+      if (filters.startDate) {
+        result = result.filter(
+          (purchase) => new Date(purchase.purchaseDate) >= new Date(filters.startDate)
+        );
+      }
+
+      if (filters.endDate) {
+        result = result.filter(
+          (purchase) => new Date(purchase.purchaseDate) <= new Date(filters.endDate)
+        );
+      }
+
+      setFilteredPurchases(result);
+    };
+    applyFilters();
+  }, [filters, purchases]);
+
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
+
+  const clearFilters = () => {
+    setFilters({
+      source: '',
+      itemName: '',
+      startDate: null,
+      endDate: null,
+    });
+  };
+
+  // Calculate statistics
+  const totalPurchases = filteredPurchases.length;
+  const totalQuantity = filteredPurchases.reduce((sum, purchase) => sum + purchase.quantity, 0);
+  const totalSpent = filteredPurchases
+    .reduce((sum, purchase) => sum + purchase.totalPrice, 0)
+    .toFixed(2);
+  const averageUnitPrice =
+    filteredPurchases.length > 0
+      ? (
+          filteredPurchases.reduce((sum, purchase) => sum + purchase.item.unitPrice, 0) /
+          filteredPurchases.length
+        ).toFixed(2)
+      : 0;
+
+  // Get unique sources for the dropdown
+  const uniqueSources = [...new Set(purchases.map((purchase) => purchase.source))];
 
   return (
-    <Box sx={{ bgcolor: 'background.paper', borderRadius: 3, p: 3 }}>
-      <Typography variant="h5" mb={3}>Purchased Items</Typography>
-      <Typography variant="h6" mb={2}>Low Stock Items</Typography>
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100px">
-          <CircularProgress />
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 3, p: 4, maxWidth: 1200, mx: 'auto', mt: 4 }}>
+        <Typography variant="h4" fontWeight="bold" mb={4}>
+          Client Purchase History
+        </Typography>
+
+        {/* Filters */}
+        <Box mb={4}>
+          <Typography variant="h6" fontWeight="medium" mb={2}>
+            Filters
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Source</InputLabel>
+                <Select
+                  value={filters.source}
+                  label="Source"
+                  onChange={(e) => handleFilterChange('source', e.target.value)}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  {uniqueSources.map((source) => (
+                    <MenuItem key={source} value={source}>
+                      {source}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                fullWidth
+                label="Item Name"
+                size="small"
+                value={filters.itemName}
+                onChange={(e) => handleFilterChange('itemName', e.target.value)}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <DatePicker
+                label="Start Date"
+                value={filters.startDate}
+                onChange={(date) => handleFilterChange('startDate', date)}
+                renderInput={(params) => <TextField {...params} size="small" fullWidth />}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <DatePicker
+                label="End Date"
+                value={filters.endDate}
+                onChange={(date) => handleFilterChange('endDate', date)}
+                renderInput={(params) => <TextField {...params} size="small" fullWidth />}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Button variant="outlined" color="secondary" onClick={clearFilters}>
+                Clear Filters
+              </Button>
+            </Grid>
+          </Grid>
         </Box>
-      ) : error ? (
-        <Typography color="error">{error}</Typography>
-      ) : nearMinimumItems.length === 0 ? (
-        <Typography>No low stock items.</Typography>
-      ) : (
-        <TableContainer component={Paper} sx={{ mb: 4 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Current Quantity</TableCell>
-                <TableCell>Min Stock Level</TableCell>
-                <TableCell>Unit Price</TableCell>
-                <TableCell>Order Quantity</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {nearMinimumItems.map((item) => (
-                <TableRow key={item.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>{item.minStockLevel}</TableCell>
-                  <TableCell>${item.unitPrice.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <TextField
-                      type="number"
-                      size="small"
-                      value={orderQuantities[item.id] || ''}
-                      onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                      sx={{ width: '80px' }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => handleOrder(item.id, parseInt(orderQuantities[item.id]) || 1)}
-                      disabled={!orderQuantities[item.id] || parseInt(orderQuantities[item.id]) <= 0}
-                    >
-                      Order
-                    </Button>
-                    <IconButton onClick={() => handleAddToCart(item.id)}>
-                      <AddShoppingCart />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-      <Typography variant="h6" mb={2}>Reorder Cart</Typography>
-      {cartItems.length === 0 ? (
-        <Typography>Cart is empty.</Typography>
-      ) : (
-        <Box>
-          <TableContainer component={Paper} sx={{ mb: 4 }}>
+
+        {/* Statistics */}
+        <Box mb={4}>
+          <Typography variant="h6" fontWeight="medium" mb={2}>
+            Statistics
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ boxShadow: 3 }}>
+                <CardContent>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Purchases
+                  </Typography>
+                  <Typography variant="h6">{totalPurchases}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ boxShadow: 3 }}>
+                <CardContent>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Quantity
+                  </Typography>
+                  <Typography variant="h6">{totalQuantity}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ boxShadow: 3 }}>
+                <CardContent>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Spent
+                  </Typography>
+                  <Typography variant="h6">${totalSpent}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ boxShadow: 3 }}>
+                <CardContent>
+                  <Typography variant="body2" color="text.secondary">
+                    Average Unit Price
+                  </Typography>
+                  <Typography variant="h6">${averageUnitPrice}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Purchase History Table */}
+        {loading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Typography color="error" variant="h6" align="center">
+            {error}
+          </Typography>
+        ) : filteredPurchases.length === 0 ? (
+          <Typography variant="body1" align="center">
+            No purchase history matches the filters.
+          </Typography>
+        ) : (
+          <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
+                <TableRow sx={{ bgcolor: 'primary.light' }}>
+                  <TableCell>Purchase ID</TableCell>
+                  <TableCell>Item Name</TableCell>
                   <TableCell>Quantity</TableCell>
                   <TableCell>Unit Price</TableCell>
-                  <TableCell>Total</TableCell>
-                  <TableCell>Action</TableCell>
+                  <TableCell>Total Price</TableCell>
+                  <TableCell>Auto Reorder</TableCell>
+                  <TableCell>Stock Optimization</TableCell>
+                  <TableCell>Purchase Date</TableCell>
+                  <TableCell>Source</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {cartItems.map((item) => (
-                  <TableRow key={item.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.quantity}</TableCell>
-                    <TableCell>${item.price.toFixed(2)}</TableCell>
-                    <TableCell>${(item.quantity * item.price).toFixed(2)}</TableCell>
-                    <TableCell>
-                      <IconButton onClick={() => handleRemoveFromCart(item.id)}>
-                        <Delete />
-                      </IconButton>
-                    </TableCell>
+                {filteredPurchases.map((purchase) => (
+                  <TableRow key={purchase.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                    <TableCell>{purchase.id}</TableCell>
+                    <TableCell>{purchase.item.name}</TableCell>
+                    <TableCell>{purchase.quantity}</TableCell>
+                    <TableCell>${purchase.item.unitPrice.toFixed(2)}</TableCell>
+                    <TableCell>${purchase.totalPrice.toFixed(2)}</TableCell>
+                    <TableCell>{purchase.item.actionEnabled ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>{purchase.item.autoCalculationEnabled ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>{format(new Date(purchase.purchaseDate), 'PPp')}</TableCell>
+                    <TableCell>{purchase.source}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
-          <Button variant="contained" onClick={handleCheckout}>Place Reorders</Button>
-        </Box>
-      )}
-      <Divider sx={{ my: 4 }} />
-      <Typography variant="h6" mb={2}>Purchase History</Typography>
-      {purchaseHistory.length === 0 ? (
-        <Typography>No purchase history.</Typography>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Purchase ID</TableCell>
-                <TableCell>Item Name</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Unit Price</TableCell>
-                <TableCell>Total</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {purchaseHistory.map((purchase) => (
-                <TableRow key={purchase.purchaseId} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                  <TableCell>{purchase.purchaseId}</TableCell>
-                  <TableCell>{purchase.name}</TableCell>
-                  <TableCell>{purchase.quantity}</TableCell>
-                  <TableCell>${purchase.unitPrice.toFixed(2)}</TableCell>
-                  <TableCell>${(purchase.quantity * purchase.unitPrice).toFixed(2)}</TableCell>
-                  <TableCell>{format(new Date(purchase.timestamp), 'PPp')}</TableCell>
-                  <TableCell>{purchase.status}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-    </Box>
+        )}
+      </Box>
+    </LocalizationProvider>
   );
 };
 
-export default PurchasedItems;
+export default PurchaseItems;
